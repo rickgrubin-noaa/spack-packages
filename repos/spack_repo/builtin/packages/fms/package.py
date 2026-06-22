@@ -167,6 +167,10 @@ class Fms(CMakePackage):
             self.define("64BIT", "precision=64" in self.spec),
             self.define_from_variant("FPIC", "pic"),
             self.define_from_variant("USE_DEPRECATED_IO", "deprecated_io"),
+
+            if self.spec.satisfies("%oneapi@2024:"):
+                fflags = "-fp-model precise -fp-speculation=safe"
+                args.extend(["-DCMAKE_Fortran_FLAGS=%s" % fflags])
         ]
 
         return args
