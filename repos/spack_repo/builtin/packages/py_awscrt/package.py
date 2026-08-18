@@ -37,3 +37,4 @@ class PyAwscrt(PythonPackage):
     def setup_build_environment(self, env: EnvironmentModifications) -> None:
         with when("platform=linux"):
             env.set("AWS_CRT_BUILD_USE_SYSTEM_LIBCRYPTO", "1")
+

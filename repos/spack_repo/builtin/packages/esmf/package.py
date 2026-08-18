@@ -47,7 +47,9 @@ class Esmf(MakefilePackage, PythonExtension):
 
     # Develop is a special name for spack and is always considered the newest version
     version("develop", branch="develop")
-    # generate chksum with 'spack checksum esmf x.y.z'
+    # generate chksum with 'spack checksum esmf@x.y.z'
+    version("9.0.0b11", commit="02c51688281c120543404a0f46a380c9722e9929")
+    version("9.0.0b10", commit="bae8e921171284d94ea271186b928ba718cb6e6f")
     version("8.9.1", sha256="e3fafd0c057bf1c3b4c41c997b392016d621b1f1a7c601355c325a7f58425d78")
     version("8.9.0", sha256="586e0101d76ff9842d9ad43567fae50317ee794d80293430d9f1847dec0eefa5")
     version("8.8.1", sha256="b0acb59d4f000bfbdfddc121a24819bd2a50997c7b257b0db2ceb96f3111b173")
@@ -69,6 +71,9 @@ class Esmf(MakefilePackage, PythonExtension):
         sha256="e08f21544083dcbe162b472852e321f8df14f4f711f35508403d32df438367a7",
         deprecated=True,
     )
+
+    # For module hierarchy (JCSDA repo only):
+    provides("esmf_virtual")
 
     variant("mpi", default=True, description="Build with MPI support")
     variant("openmp", default=True, description="Build with OpenMP support")
@@ -249,7 +254,7 @@ class MakefileBuilder(makefile.MakefileBuilder):
             env.set("ESMF_COMPILER", "gfortranclang")
         elif spec["fortran"].name == "llvm":
             env.set("ESMF_COMPILER", "llvm")
-        elif self.pkg.compiler.name == "nag":
+        elif spec["fortran"].name == "nag":
             env.set("ESMF_COMPILER", "nag")
         elif self.pkg.compiler.name == "nvhpc":
             env.set("ESMF_COMPILER", "nvhpc")

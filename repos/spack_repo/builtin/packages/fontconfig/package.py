@@ -71,6 +71,8 @@ class Fontconfig(AutotoolsPackage):
         if self.spec.satisfies("+pic"):
             args.append(f"CFLAGS={self.compiler.cc_pic_flag}")
 
+        args.extend(self.with_or_without("pic"))
+
         return args
 
     @run_after("install")

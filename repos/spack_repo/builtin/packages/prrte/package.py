@@ -68,6 +68,34 @@ class Prrte(AutotoolsPackage):
     depends_on("libtool", type=("build"))
     depends_on("flex", type=("build"))
     depends_on("pkgconfig", type="build")
+    depends_on("python@3.7:", type="build", when="@develop")
+
+    # https://github.com/openpmix/openpmix/blob/master/docs/installing-pmix/configure-cli-options/runtime.rst
+    SCHEDULERS = ("alps", "lsf", "tm", "slurm", "sge")
+
+    variant(
+        "schedulers",
+        values=disjoint_sets(("none",), SCHEDULERS).with_non_feature_values("none"),
+        description="List of schedulers for which support is enabled",
+    )
+    depends_on("lsf", when="schedulers=lsf")
+    depends_on("pbs", when="schedulers=tm")
+    depends_on("slurm", when="schedulers=slurm")
+
+    # fixes a segfault in v4.1.0 for some Apple ARM architectures
+    # https://github.com/openpmix/prrte/pull/2417
+    patch(
+        "https://github.com/openpmix/prrte/commit/378c61c1d8eff9858a7774c869fbd332c48711a8.patch?full_index=1",
+        sha256="64faa1acb89eddea096307a2658b11ccdaf85dc8c870fed4b3f8670329706a4f",
+        when="@4.1.0",
+    )
+
+    def url_for_version(self, version):
+        if version <= Version("3"):
+            # tarballs have a single 'r'
+            return f"https://github.com/pmix/prrte/releases/download/v{version}/prte-{version}.tar.bz2"
+        else:
+            return super().url_for_version(version)
 
     # The shipped configured has an expectation on automake version leading to either
     # system automake use or configure failure

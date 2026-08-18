@@ -60,6 +60,9 @@ class NetcdfC(CMakePackage, AutotoolsPackage):
         )
         version("4.3.3", sha256="3f16e21bc3dfeb3973252b9addf5defb48994f84fc9c9356081f871526a680e7")
 
+    # For module hierarchy (JCSDA repo only):
+    provides("netcdf_c_virtual")
+
     with when("build_system=cmake"):
         # TODO: document why we need to revert https://github.com/Unidata/netcdf-c/pull/1731
         #  with the following patch:
@@ -151,6 +154,9 @@ class NetcdfC(CMakePackage, AutotoolsPackage):
         when="@4.9.0:4.9.2",
     )
 
+    # https://github.com/Unidata/netcdf-c/issues/3199
+    patch("cmakelists_mpi_symbols.patch", when="build_system=cmake")
+
     # Address the CVE-2025-14933 vulnerability (https://github.com/advisories/GHSA-cg32-6v27-jr43).
     # See https://github.com/Unidata/netcdf-c/pull/3153
     patch(
@@ -158,6 +164,17 @@ class NetcdfC(CMakePackage, AutotoolsPackage):
         sha256="5adacbeb7021ba59e6cdb23bb0095c720b9da925b276418c66d5eb9c8ddb0d56",
         when="@:4.9",
     )
+
+    def patch(self):
+        """Fix bad code in ncgen/CMakeLists.txt that removes
+        the rpath for dependencies like hdf5."""
+        if self.spec.satisfies("build_system=cmake"):
+            filter_file(
+                "SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)",
+                "#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)",
+                "ncgen/CMakeLists.txt",
+                string=True,
+            )
 
     variant("mpi", default=True, description="Enable parallel I/O for netcdf-4")
     variant("parallel-netcdf", default=False, description="Enable parallel I/O for classic files")
@@ -175,6 +192,8 @@ class NetcdfC(CMakePackage, AutotoolsPackage):
     variant("szip", default=True, description="Enable Szip compression plugin")
     variant("blosc", default=True, description="Enable Blosc compression plugin")
     variant("zstd", default=True, description="Enable Zstandard compression plugin")
+    # JCSDA fork only:
+    variant("parallel_tests", default=False, description="Run parallel tests", when="+mpi")
 
     depends_on("c", type="build")
     depends_on("cxx", type="build", when="build_system=cmake")
@@ -395,6 +414,8 @@ class CMakeBuilder(AnyBuilder, cmake.CMakeBuilder):
             self.define(nc + "ENABLE_LARGE_FILE_SUPPORT", True),
             self.define_from_variant("NETCDF_ENABLE_LOGGING", "logging"),
         ]
+        if any(self.spec.satisfies(s) for s in ["+mpi", "+parallel-netcdf", "^hdf5+mpi~shared"]):
+            base_cmake_args.append(self.define("CMAKE_C_COMPILER", self.spec["mpi"].mpicc))
         if "+parallel-netcdf" in self.pkg.spec:
             base_cmake_args.append(self.define(nc + "ENABLE_PNETCDF", True))
         if self.pkg.spec.satisfies("@4.3.1:"):
@@ -481,6 +502,10 @@ class AutotoolsBuilder(AnyBuilder, autotools.AutotoolsBuilder):
             "--enable-static",
             "--enable-largefile",
         ]
+
+        # JCSDA fork only:
+        if self.spec.satisfies("+parallel_tests") and self.pkg.run_tests:
+            config_args.append("--enable-parallel-tests")
 
         if self.spec.satisfies("@4.8.0:"):
             config_args.append("--enable-hdf5")

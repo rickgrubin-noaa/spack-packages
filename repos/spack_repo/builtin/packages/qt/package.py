@@ -278,6 +278,14 @@ class Qt(Package):
     depends_on("llvm", when="@5.11: +doc")
     depends_on("zstd@1.3:", when="@5.13:")
 
+    # For spack external find
+    executables = ["^qtplugininfo$"]
+
+    @classmethod
+    def determine_version(cls, exe):
+        version_string = Executable(exe)("-v", output=str, error=str)
+        return version_string.lstrip("qplugininfo").strip()
+
     with when("+webkit"):
         patch(
             "https://src.fedoraproject.org/rpms/qt5-qtwebengine/raw/32062243e895612823b47c2ae9eeb873a98a3542/f/qtwebengine-gcc11.patch",
@@ -402,6 +410,11 @@ class Qt(Package):
                 # Prevent possibly incompatible system LLVM from being found
                 llvm_path = "/spack-disable-llvm"
             env.set("LLVM_INSTALL_DIR", llvm_path)
+
+        if self.spec.satisfies("+ssl ^openssl~shared"):
+            pc = which("pkg-config")
+            ssl_flags = pc("openssl", "--libs-only-l", "--static", output=str).strip()
+            env.set("OPENSSL_LIBS", ssl_flags)
 
     def setup_run_environment(self, env: EnvironmentModifications) -> None:
         env.set("QTDIR", self.prefix)
@@ -573,7 +586,7 @@ class Qt(Package):
         )
 
     @when("@4: %fj")
-    def patch(self):
+    def patch(self):  # noqa: F811
         (mkspec_dir, platform) = self.get_mkspec()
 
         conf = os.path.join(mkspec_dir, "common", "clang.conf")
@@ -586,6 +599,16 @@ class Qt(Package):
             conf_file = os.path.join(mkspec_dir, platform, "qmake.conf")
             with open(conf_file, "a") as f:
                 f.write("QMAKE_CXXFLAGS += -std=gnu++98\n")
+
+    @when("~shared")
+    @run_before("configure")
+    def patch(self):  # noqa: F811
+        filter_file(
+            "libs-only-L", "libs-only-L --static", "qtbase/mkspecs/features/qt_configure.prf"
+        )
+        filter_file(
+            "libs-only-l", "libs-only-l --static", "qtbase/mkspecs/features/qt_configure.prf"
+        )
 
     def _quoted(self, args):
         """Returns args with each arg in double quotes if neccesary
@@ -698,6 +721,7 @@ class Qt(Package):
             config_args.append("-no-openvg")
         else:
             # FIXME: those could work for other versions
+            use_spack_dep("libtiff", "tiff")
             use_spack_dep("libpng")
             use_spack_dep("jpeg", "libjpeg")
             use_spack_dep("zlib-api", "zlib")

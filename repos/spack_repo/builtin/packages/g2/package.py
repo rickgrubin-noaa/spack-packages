@@ -96,6 +96,14 @@ class G2(CMakePackage):
 
         return args
 
+    # https://github.com/JCSDA/spack/issues/475
+    def flag_handler(self, name, flags):
+        if self.spec.satisfies("@3.5.1") and name == "fflags" and self.spec["fortran"].name == "gcc":
+            gfortran_major_version = int(self.spec["fortran"].version[0])
+            if gfortran_major_version < 10:
+                flags.append("-fno-range-check")
+        return (None, None, flags)
+
     def setup_run_environment(self, env: EnvironmentModifications) -> None:
         precisions = (
             self.spec.variants["precision"].value if self.spec.satisfies("@3.4.6:") else ("4", "d")

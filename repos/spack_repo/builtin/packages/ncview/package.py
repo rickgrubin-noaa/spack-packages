@@ -1,6 +1,7 @@
 # Copyright Spack Project Developers. See COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
+import subprocess
 
 from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
 
@@ -24,6 +25,20 @@ class Ncview(AutotoolsPackage):
     depends_on("udunits")
     depends_on("libpng")
     depends_on("libxaw")
+    depends_on("libxmu")
+
+    def configure_args(self):
+        spec = self.spec
+
+        config_args = []
+
+        # Problems on some systems (e.g. NASA Discover with Intel)
+        # to find udunits include and library files despite
+        # dependency being specified above
+        config_args.append("--with-udunits2_incdir={}".format(spec["udunits"].prefix.include))
+        config_args.append("--with-udunits2_libdir={}".format(spec["udunits"].prefix.lib))
+
+        return config_args
 
     def patch(self):
         # Disable the netcdf-c compiler check, save and restore the

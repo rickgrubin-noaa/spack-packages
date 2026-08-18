@@ -34,10 +34,19 @@ class Odc(CMakePackage):
 
     depends_on("eckit@1.4:+sql")
 
+    # https://github.com/ecmwf/odc/issues/37
+    conflicts("@:1.5", when="oneapi@2025.1:")
+
     def cmake_args(self):
         args = [
             self.define_from_variant("ENABLE_FORTRAN", "fortran"),
             # The tests download additional data (~650MB):
             self.define("ENABLE_TESTS", self.run_tests),
         ]
+        # https://github.com/JCSDA/spack-stack/issues/585
+        if self.spec.satisfies("%apple-clang@14.0.3"):
+            args.append(self.define("CMAKE_C_FLAGS_RELEASE", "-O1"))
+            args.append(self.define("CMAKE_CXX_FLAGS_RELEASE", "-O1"))
+            args.append(self.define("CMAKE_C_FLAGS_RELWITHDEBINFO", "-O1"))
+            args.append(self.define("CMAKE_CXX_FLAGS_RELWITHDEBINFO", "-O1"))
         return args

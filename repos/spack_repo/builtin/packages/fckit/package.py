@@ -33,8 +33,8 @@ class Fckit(CMakePackage):
     version("0.9.5", sha256="183cd78e66d3283d9e6e8e9888d3145f453690a4509fb701b28d1ac6757db5de")
 
     depends_on("c", type="build")
-    depends_on("cxx", type="build")  # generated
-    depends_on("fortran", type="build")  # generated
+    depends_on("cxx", type="build")
+    depends_on("fortran", type="build")
 
     depends_on("mpi")
     depends_on("python")

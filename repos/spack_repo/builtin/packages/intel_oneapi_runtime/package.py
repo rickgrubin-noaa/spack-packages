@@ -40,7 +40,10 @@ class IntelOneapiRuntime(Package):
     ]
 
     # libifcore ABI
-    provides("fortran-rt", "libifcore@5", when="%oneapi@2021:")
+    # https://github.com/spack/spack/issues/51268
+    # https://github.com/spack/spack-packages/pull/1485
+    #provides("fortran-rt", "libifcore@5", when="%oneapi@2021:")
+    provides("fortran-rt", "libifcore@5")
     provides("sycl")
 
     conflicts("platform=windows", msg="IntelOneAPI can only be installed on Linux, and FreeBSD")
@@ -59,6 +62,19 @@ class IntelOneapiRuntime(Package):
 
         for path, name in libraries:
             install(path, os.path.join(prefix.lib, os.path.basename(name)))
+
+        if self.spec["intel-oneapi-compilers"].satisfies("+fix_rt_linkage"):
+            for _, name in libraries:
+                if name == "libimf.so":
+                    patchelf = which("patchelf")
+                    patchelf.add_default_arg("--add-needed")
+                    patchelf.add_default_arg("libm.so.6")
+                    patchelf(join_path(prefix.lib, name), fail_on_error=True)
+                if name in ["libirc.so", "libimf.so"]:
+                    patchelf = which("patchelf")
+                    patchelf.add_default_arg("--add-needed")
+                    patchelf.add_default_arg("libc.so.6")
+                    patchelf(join_path(prefix.lib, name), fail_on_error=True)
 
         if self.spec["intel-oneapi-compilers"].satisfies("+fix_rt_linkage"):
             for _, name in libraries:

@@ -74,6 +74,7 @@ class Met(AutotoolsPackage):
     depends_on("py-numpy", when="+python", type=("build", "run"))
     depends_on("py-xarray", when="+python", type=("build", "run"))
     depends_on("py-pandas", when="+python", type=("build", "run"))
+    depends_on("patchelf@0.13:", when="platform=linux", type="build")
 
     patch("openmp_shape_patch.patch", when="@10.1.0")
 

@@ -149,6 +149,9 @@ class Python(Package):
             "3.9.21", sha256="667c3ba2ca98d39ead1162f6548c3475768582e2ff89e0821d25eb956ac09944"
         )
 
+    # For module hierarchy (JCSDA repo only):
+    provides("python_virtual")
+
     # EOL versions we still want to be able to install
     with default_args(deprecated=True):
         version(
@@ -719,6 +722,13 @@ class Python(Package):
 
         if cflags:
             config_args.append("CFLAGS={0}".format(" ".join(cflags)))
+
+        if spec["gettext"].satisfies("~shared"):
+            config_args.append(
+                "LIBS=-L{0} -L{1} -lintl -liconv".format(
+                    spec["gettext"].prefix.lib, spec["iconv"].prefix.lib
+                )
+            )
 
         if self.version >= Version("3.12.0") and sys.platform == "darwin":
             config_args.append("CURSES_LIBS={0}".format(spec["ncurses"].libs.link_flags))

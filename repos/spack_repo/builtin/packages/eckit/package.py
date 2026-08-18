@@ -94,6 +94,7 @@ class Eckit(CMakePackage):
     depends_on("cmake@3.12:3.19,3.22:", type="build")
     depends_on("ecbuild@3.5:", when="@:1.20.99", type="build")
     depends_on("ecbuild@3.7:", when="@1.21:", type="build")
+    depends_on("ecbuild@3.11:", when="@1.31:", type="build")
 
     depends_on("mpi", when="+mpi")
     depends_on("llvm-openmp", when="+openmp %apple-clang", type=("build", "run"))
@@ -193,6 +194,21 @@ class Eckit(CMakePackage):
             # ENABLE_LAPACK is ignored if MKL backend is enabled
             # (the LAPACK backend is still built though):
             args.append(self.define("ENABLE_LAPACK", "linalg=lapack" in self.spec))
+
+        if self.spec.satisfies("linalg=lapack"):
+            lapack_vendors = {
+                "amdlibflame": "AOCL",
+                "atlas": "ATLAS",
+                "essl": "IBMESSL",
+                "flexiblas": "FlexiBLAS",
+                "fujitsu-ssl2": "Fujitsu_SSL2",
+                "netlib-lapack": "Generic",
+                "nvhpc": "NVHPC",
+                "openblas": "OpenBLAS",
+            }
+            if self.spec["lapack"].name in lapack_vendors.keys():
+                vendor = lapack_vendors[self.spec["lapack"].name]
+                args.append(self.define("BLA_VENDOR", vendor))
 
         if "+admin" in self.spec and "+termlib" in self.spec["ncurses"]:
             # Make sure that libeckit_cmd is linked to a library that resolves 'setupterm',

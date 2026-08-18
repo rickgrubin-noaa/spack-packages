@@ -115,6 +115,9 @@ class Hdf5(CMakePackage):
     version("1.8.12", sha256="b5cccea850096962b5fd9e96f22c4f47d2379224bb41130d9bc038bb6c37dfcb")
     version("1.8.10", sha256="4813b79c5fb8701a625b9924b8203bc7154a77f9b826ad4e034144b4056a160a")
 
+    # For module hierarchy (JCSDA repo only):
+    provides("hdf5_virtual")
+
     variant("shared", default=True, description="Builds a shared version of the library")
 
     variant("hl", default=False, description="Enable the high-level library")
@@ -172,6 +175,9 @@ class Hdf5(CMakePackage):
     # Skip this on Windows since pkgconfig is autotools
     for plat in ["darwin", "linux"]:
         depends_on("pkgconfig", when=f"platform={plat}", type="run")
+
+    # https://github.com/spack/spack/issues/37955
+    conflicts("+fortran", when="@1.14.1-2 %intel", msg="Fortran API broken in 1.14.1-2 with Intel")
 
     conflicts("+mpi", "^mpich@4.0:4.0.3")
     conflicts("api=v200", when="@1.6:1.14", msg="v200 is not compatible with this release")
@@ -245,6 +251,9 @@ class Hdf5(CMakePackage):
     # will include the patch code changes.
     # See https://github.com/HDFGroup/hdf5/pull/3837
     patch("hdf5_1_14_3_fpe.patch", when="@1.14.3")
+
+    # Fix Apple linker flags (-current_version and -compatibility_version) when building with NAG compiler
+    patch("nag_macos_linker.patch", when="@1.12.0:1.14.99 %nag platform=darwin")
 
     # There are known build failures with intel@18.0.1. This issue is
     # discussed and patch is provided at
@@ -600,6 +609,14 @@ class Hdf5(CMakePackage):
             if spec.satisfies("+cxx"):
                 args.append(self.define("MPI_CXX_COMPILER", spec["mpi"].mpicxx))
             args.append(self.define("MPI_C_COMPILER", spec["mpi"].mpicc))
+
+            if spec.satisfies("+cxx"):
+                args.extend(
+                    [
+                        "-DMPI_CXX_COMPILER:PATH=%s" % spec["mpi"].mpicxx,
+                        "-DCMAKE_CXX_COMPILER:PATH=%s" % spec["mpi"].mpicxx,
+                    ]
+                )
 
             if spec.satisfies("+fortran"):
                 args.append(self.define("MPI_Fortran_COMPILER", spec["mpi"].mpifc))

@@ -77,6 +77,13 @@ class Mysql(CMakePackage):
     depends_on("bison@2.1:", type="build")
     depends_on("m4", type="build", when="@develop platform=solaris")
 
+    # For spack external find
+    executables = ["^mysql_config$"]
+
+    @classmethod
+    def determine_version(cls, exe):
+        return Executable(exe)("--version", output=str, error=str)
+
     @property
     def command(self):
         return Executable(self.prefix.bin.mysql_config)

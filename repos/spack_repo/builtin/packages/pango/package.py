@@ -93,6 +93,11 @@ class Pango(MesonPackage):
         else:
             args.append("-Dgtk_doc=false")
 
+        if self.spec.satisfies("^cairo ~shared"):
+            pkgconfig = which("pkg-config")
+            cairo_libs = pkgconfig("cairo", "--static", "--libs", output=str).strip()
+            args.append(f"LIBS={cairo_libs}")
+
         return args
 
     def setup_run_environment(self, env: EnvironmentModifications) -> None:

@@ -177,6 +177,17 @@ class MesonBuilder(meson.MesonBuilder, SetupEnvironment):
             f"-Dcoretext={coretext}",
             f"-Dintrospection={introspection}",
         ]
+
+        libs = []
+        pc = which("pkg-config")
+        deps = {"zlib": "~shared", "bzip": "~shared", "libpng": "libs=static", "cairo": "~shared"}
+        for dep in deps.keys():
+            if self.spec.satisfies(f"^{dep} {deps[dep]}"):
+                libs.append(pc(dep, "--static", "--libs", output=str).strip())
+        if libs:
+            config_args.append("-Dc_link_args=%s" % " ".join(libs))
+            config_args.append("-Dcpp_link_args=%s" % " ".join(libs))
+
         if IS_WINDOWS:
             config_args.extend(["-Dcairo=disabled", "-Dglib=disabled"])
         return config_args
@@ -196,6 +207,15 @@ class AutotoolsBuilder(autotools.AutotoolsBuilder, SetupEnvironment):
         args.extend(self.with_or_without("graphite2"))
         args.extend(self.with_or_without("coretext"))
         args.extend(self.with_or_without("gobject"))
+
+        libs = []
+        pc = which("pkg-config")
+        deps = {"zlib": "~shared", "bzip": "~shared", "libpng": "libs=static", "cairo": "~shared"}
+        for dep in deps.keys():
+            if self.spec.satisfies(f"^{dep} {deps[dep]}"):
+                libs.append(pc(dep, "--static", "--libs", output=str).strip())
+        if libs:
+            args.append("LIBS=%s" % " ".join(libs))
 
         return args
 
